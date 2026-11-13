@@ -1,0 +1,11 @@
+{
+  "name": "sheets-task-tracker-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Google Sheets task tracker automated with Apps Script: CSV imports from Drive, validation, audit log, weekly PDF summaries.",
+  "scripts": {
+    "test": "node --test tests/",
+    "demo": "node scripts/demo.js",
+    "push": "clasp push"
+  }
+}
