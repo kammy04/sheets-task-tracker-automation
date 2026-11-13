@@ -8,6 +8,8 @@ summary every Monday morning.
 The core logic is plain JavaScript with no Google dependencies, so it's unit-tested locally
 with Node and you can run the whole flow without a Google account (`npm run demo`).
 
+**🔗 Live demo: https://kammy04.github.io/sheets-task-tracker-automation/demo/**. Runs the real tracker logic in your browser, no Google account needed.
+
 ![Weekly summary PDF](docs/sample-summary.png)
 
 ## How it works

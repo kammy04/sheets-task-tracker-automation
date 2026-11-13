@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Tracker Demo</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --ink: #1d1d1b; --ink-2: #5c5b57; --line: #e4e3df;
+    --accent: #2a78d6; --accent-ink: #ffffff; --good: #1d7a46; --warn: #a15c00; --bad: #b3261e;
+    --good-bg: #e6f4ec; --warn-bg: #fdf1dc; --bad-bg: #fce8e6; --muted-bg: #f0efeb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --surface: #1f1f1e; --ink: #ecebe6; --ink-2: #a9a8a1; --line: #34332f;
+      --accent: #4f95e8; --accent-ink: #0b0b0b; --good: #7fd3a1; --warn: #f0b75a; --bad: #f28b82;
+      --good-bg: #1d3327; --warn-bg: #3a2c12; --bad-bg: #3d1f1d; --muted-bg: #2a2a28;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  p.lead { color: var(--ink-2); margin: 0 0 20px; max-width: 760px; }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .stack > * + * { margin-top: 16px; }
+  button, .file-label {
+    font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 7px 10px; border-radius: 7px; cursor: pointer; text-align: left; width: 100%;
+  }
+  button:hover, .file-label:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; border-color: var(--line); }
+  .file-btn { display: flex; justify-content: space-between; gap: 8px; }
+  .file-btn small { color: var(--ink-2); }
+  button.done small { color: var(--good); }
+  .steps { display: grid; gap: 8px; }
+  label.field { display: grid; gap: 4px; color: var(--ink-2); font-size: 13px; }
+  input[type=date] { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); }
+  input[type=file] { display: none; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kpi { background: var(--muted-bg); border-radius: 8px; padding: 10px; }
+  .kpi b { display: block; font-size: 20px; }
+  .kpi span { color: var(--ink-2); font-size: 12px; }
+  .kpi.late b { color: var(--bad); }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+  tr.overdue td { background: var(--bad-bg); }
+  td.nowrap { white-space: nowrap; }
+  td.note { white-space: pre-line; color: var(--ink-2); max-width: 260px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; background: var(--muted-bg); }
+  .badge.Done { background: var(--good-bg); color: var(--good); }
+  .badge.Blocked { background: var(--warn-bg); color: var(--warn); }
+  .badge.In-Progress { background: var(--muted-bg); color: var(--accent); }
+  .act { font-weight: 600; font-size: 12px; }
+  .act.CREATED, .act.UPDATED { color: var(--good); }
+  .act.DUPLICATE { color: var(--warn); }
+  .act.REJECTED { color: var(--bad); }
+  .empty { color: var(--ink-2); padding: 12px 0; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tabs button { width: auto; }
+  .tabs button[aria-selected=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  iframe { width: 100%; height: 620px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .hint { color: var(--ink-2); font-size: 12px; }
+  footer { margin-top: 28px; color: var(--ink-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sheets Task Tracker: live demo</h1>
+  <p class="lead">
+    This page runs the tracker's real logic (<code>src/Core.js</code>, the same file the Apps Script uses) in your
+    browser. Import the sample CSVs in order, or upload your own, and watch the Tasks sheet, the audit log and
+    the weekly summary update. In Google Sheets this happens automatically when a CSV lands in the Drive inbox folder.
+    <a href="https://github.com/kammy04/sheets-task-tracker-automation">Source on GitHub</a>
+  </p>
+
+  <div class="grid">
+    <div class="stack">
+      <section class="card">
+        <h2>1. Drop files into the inbox</h2>
+        <div class="steps" id="steps"></div>
+        <p class="hint">Batch 2 is deliberately messy: different header names, "todo" statuses, a US date, a duplicate, a bad email and an invalid status.</p>
+      </section>
+      <section class="card stack">
+        <h2>Your own CSV</h2>
+        <label class="file-label" for="upload">Upload a tasks or updates CSV…</label>
+        <input type="file" id="upload" accept=".csv,text/csv">
+        <p class="hint">The file type is detected from the headers. Tasks need TaskName, AssignedTo, Status, DueDate; updates need TaskID plus Status and/or Note.</p>
+      </section>
+      <section class="card stack">
+        <label class="field">"Today" for the summary
+          <input type="date" id="today" value="2025-09-19">
+        </label>
+        <button id="reset">Reset the sheet</button>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <div class="kpis" id="kpis"></div>
+      </section>
+      <section class="card">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-tab="tasks">Tasks sheet</button>
+          <button role="tab" aria-selected="false" data-tab="audit">Audit log</button>
+          <button role="tab" aria-selected="false" data-tab="summary">Weekly summary PDF</button>
+        </div>
+        <div id="tab-tasks" class="table-wrap"></div>
+        <div id="tab-audit" class="table-wrap" hidden></div>
+        <div id="tab-summary" hidden><iframe id="summary" title="Weekly summary preview"></iframe></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>Everything runs locally in your browser; nothing is uploaded anywhere.</footer>
+</main>
+
+<script src="../src/Core.js"></script>
+<script>
+  // Minimal RFC-4180 CSV parser (mirrors Utilities.parseCsv in Apps Script)
+  function parseCsv(text) {
+    const rows = []; let row = [], field = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"' && text[i + 1] === '"') { field += '"'; i++; } else if (c === '"') q = false; else field += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  const SAMPLES = [
+    ['tasks_batch1.csv', 'new tasks'],
+    ['updates_batch1.csv', 'status updates'],
+    ['tasks_batch2.csv', 'messy new tasks'],
+    ['updates_batch2.csv', 'more updates'],
+  ];
+  let tasks = [], audit = [], imported = new Set();
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const today = () => document.getElementById('today').value || new Date().toISOString().slice(0, 10);
+
+  function importText(name, text) {
+    // the demo's clock is the 'Today' date picker, so notes and the summary agree
+    const now = today() + 'T' + new Date().toISOString().slice(11);
+    const values = parseCsv(text.replace(/^﻿/, ''));
+    const type = detectFileType(values);
+    const incoming = rowsToObjects(values);
+    const log = (action, id, details) => audit.unshift({ time: now.slice(11, 19), action, id, details });
+    if (type === 'tasks') {
+      const m = mergeTasks(tasks, incoming, now);
+      tasks = m.rows;
+      m.created.forEach(t => log('CREATED', t.TaskID, `${t.TaskName} (from ${name})`));
+      m.duplicates.forEach(d => log('DUPLICATE', d.existingId, `Row ${d.row} of ${name} already exists`));
+      m.rejected.forEach(r => log('REJECTED', '', `Row ${r.row} of ${name}: ${r.reason}`));
+    } else if (type === 'updates') {
+      const u = applyUpdates(tasks, incoming, now);
+      tasks = u.rows;
+      u.changes.forEach(c => log('UPDATED', c.TaskID, `${c.details} (from ${name})`));
+      u.rejected.forEach(r => log('REJECTED', '', `Row ${r.row} of ${name}: ${r.reason}`));
+    } else {
+      log('REJECTED', '', `${name}: headers not recognised as tasks or updates`);
+    }
+    render();
+  }
+
+  function renderSteps() {
+    const el = document.getElementById('steps');
+    el.innerHTML = '';
+    SAMPLES.forEach(([file, label], i) => {
+      const b = document.createElement('button');
+      const done = imported.has(file);
+      b.className = 'file-btn' + (done ? ' done' : '') + (!done && i === imported.size ? ' primary' : '');
+      b.innerHTML = `<span>${file}</span><small>${done ? 'imported ✓' : label}</small>`;
+      b.disabled = done;
+      b.onclick = async () => {
+        const res = await fetch(`../sample-data/${file}`);
+        importText(file, await res.text());
+        imported.add(file);
+        renderSteps();
+      };
+      el.appendChild(b);
+    });
+  }
+
+  function render() {
+    const s = summarize(tasks, today());
+    const k = [
+      [s.total, 'tasks'], [s.percentDone + '%', 'done'], [s.byStatus['In Progress'], 'in progress'],
+      [s.byStatus['Blocked'], 'blocked'], [s.overdue.length, 'overdue', 'late'],
+    ];
+    document.getElementById('kpis').innerHTML =
+      k.map(([v, l, c]) => `<div class="kpi ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    const overdueIds = new Set(s.overdue.map(t => t.TaskID));
+    document.getElementById('tab-tasks').innerHTML = tasks.length
+      ? `<table><thead><tr><th>TaskID</th><th>TaskName</th><th>AssignedTo</th><th>Status</th><th>DueDate</th><th>Note</th></tr></thead><tbody>${
+          tasks.map(t => `<tr class="${overdueIds.has(t.TaskID) ? 'overdue' : ''}"><td class="nowrap">${esc(t.TaskID)}</td><td>${esc(t.TaskName)}</td><td>${esc(t.AssignedTo)}</td><td><span class="badge ${esc(t.Status).replace(' ', '-')}">${esc(t.Status)}</span></td><td class="nowrap">${esc(t.DueDate)}</td><td class="note">${esc(t.Note)}</td></tr>`).join('')
+        }</tbody></table>`
+      : '<p class="empty">The sheet is empty. Import <b>tasks_batch1.csv</b> to start.</p>';
+
+    document.getElementById('tab-audit').innerHTML = audit.length
+      ? `<table><thead><tr><th>Time</th><th>Action</th><th>TaskID</th><th>Details</th></tr></thead><tbody>${
+          audit.map(a => `<tr><td>${a.time}</td><td class="act ${a.action}">${a.action}</td><td>${esc(a.id)}</td><td>${esc(a.details)}</td></tr>`).join('')
+        }</tbody></table>`
+      : '<p class="empty">Nothing logged yet.</p>';
+
+    document.getElementById('summary').srcdoc = summaryHtml(s, today());
+  }
+
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
+    ['tasks', 'audit', 'summary'].forEach(t => document.getElementById('tab-' + t).hidden = t !== b.dataset.tab);
+  });
+  document.getElementById('upload').onchange = async e => {
+    const f = e.target.files[0];
+    if (f) importText(f.name, await f.text());
+    e.target.value = '';
+  };
+  document.getElementById('today').onchange = render;
+  document.getElementById('reset').onclick = () => { tasks = []; audit = []; imported = new Set(); renderSteps(); render(); };
+
+  renderSteps();
+  render();
+</script>
+</body>
+</html>
